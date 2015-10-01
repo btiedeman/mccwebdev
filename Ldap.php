@@ -13,8 +13,8 @@ namespace mccwebdev\ldap;
  */
 class Ldap extends \yii\base\Widget
 {
-    public function run()
-    {
-        return "Hello!";
-    }
+	public function run()
+	{
+		return "Hello!";
+	}
 }
