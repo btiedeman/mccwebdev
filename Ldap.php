@@ -125,5 +125,9 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
+	public function getUserAttributes( ) {
+		return $this->userAttributes;
+	}
+	
 }
 
