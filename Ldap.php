@@ -8,13 +8,110 @@
 
 namespace mccwebdev\ldap;
 
+use yii\base\InvalidConfigException;
+
 /**
  * This is just an example.
  */
-class Ldap extends \yii\base\Widget
-{
-	public function run()
-	{
-		return "Hello!";
+class Ldap extends \yii\base\Component {
+	
+	const ERROR_LDAP_NONE = 0;
+	const ERROR_LDAP_MULTIPLE_USERS_FOUND = 1; // search not specific enough
+	const ERROR_LDAP_USERNAME_INVALID = 2;
+	const ERROR_LDAP_PASSWORD_INVALID = 3;
+	const ERROR_LDAP_UNAVAILABLE = 4;
+	const ERROR_UNKNOWN_IDENTITY = 100;
+	
+	protected $connectionHostname;
+	protected $connectionPort;
+	protected $serviceDistinguishedName;
+	protected $servicePassword;
+	
+	protected $searchBaseDistinguishedName;
+	protected $searchParameters = [ ];
+	
+	protected $username;
+	protected $password;
+	
+	protected $requestedAttributes = [ ];
+	
+	private $errorCode = self::ERROR_LDAP_NONE;
+	
+	public function setCredentials( $username, $password ) {
+		$this->username = $username;
+		$this->password = $password;
 	}
+	
+	public function authenticateUser( ) {
+		
+		$ldapConnection = NULL;
+		$ldapBind = NULL;
+		
+		// try to connect to LDAP server
+		$ldapConnection = ldap_connect( $this->connectionHostname, $this->connectionPort );
+		if( ! $ldapConnection ):
+			$this->errorCode = self::ERROR_LDAP_UNAVAILABLE;
+			return false;
+		endif;
+		
+		// set LDAP options
+		// TODO: convert to Yii configuration
+		ldap_set_option( $ldapConnection, LDAP_OPT_PROTOCOL_VERSION, 3 );
+		ldap_set_option( $ldapConnection, LDAP_OPT_REFERRALS, 0 );
+		
+		// try to bind to LDAP server with authorized service account
+		$ldapBind = ldap_bind( $ldapConnection, $this->serviceDistinguishedName, $this->servicePassword );
+		if( ! $ldapBind ):
+			ldap_unbind( $ldapConnection );
+			$this->errorCode = self::ERROR_LDAP_UNAVAILABLE;
+			return false;
+		endif;
+		
+		// try to find the requested user
+		$ldapSearch = ldap_search( $ldapConnection, $this->searchBaseDistinguishedName, $this->buildLdapFilter( ) );
+		$ldapSearchResults = ldap_get_entries( $ldapConnection, $ldapSearch );
+		
+		if( $ldapSearchResults[ 'count' ] > 1 ):
+			ldap_unbind( $ldapConnection );
+			$this->errorCode = self::ERROR_LDAP_MULTIPLE_USERS_FOUND;
+			return false;
+		endif;
+		
+		if( $ldapSearchResults[ 'count'] < 1 ):
+			ldap_unbind( $ldapConnection );
+			$this->errorCode = self::ERROR_LDAP_USERNAME_INVALID;
+			return false;
+		endif;
+		
+		// retrieve distinguished name and any requested attributes
+		$user = $ldapSearchResults[ 0 ];
+		
+		$userDN = ( empty( $requestedUser[ 'dn' ] ) ? '' : $requestedUser[ 'dn' ] );
+		
+		// TODO: retrieve requested attributes from config and store in accessible variable
+		
+		// check if password is valid
+		$ldapBind = @ldap_bind( $ldapConnection, $userDN, $this->password );
+		if( ! $ldapBind ):
+			ldap_unbind( $ldapConnection );
+			$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
+			return false;
+		endif;
+		
+		$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
+		ldap_unbind( $ldapConnection );
+		return true;
+		
+	}
+	
+	private function buildLdapFilter( ) {
+		
+		$filters = [ ];
+		foreach( $this->searchParameters as $searchParameter => $searchValue ):
+			$filters[ ] = $searchParameter . '=' . $this->$searchValue;
+		endforeach;
+		return implode( ',', $filters );
+		
+	}
+	
 }
