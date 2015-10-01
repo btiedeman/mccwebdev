@@ -34,8 +34,9 @@ class Ldap extends \yii\base\Component {
 	protected $password;
 	
 	protected $requestedAttributes = [ ];
+	protected $userAttributes = [ ];
 	
-	private $errorCode = self::ERROR_LDAP_NONE;
+	protected $errorCode = self::ERROR_LDAP_NONE;
 	
 	public function setCredentials( $username, $password ) {
 		$this->username = $username;
@@ -88,7 +89,16 @@ class Ldap extends \yii\base\Component {
 		
 		$userDN = ( empty( $requestedUser[ 'dn' ] ) ? '' : $requestedUser[ 'dn' ] );
 		
-		// TODO: retrieve requested attributes from config and store in accessible variable
+		foreach( $this->requestedAttributes as $attributeName => $attribute ):
+			$value = '';
+			if( ! empty( $user[ $attribute[ 'id' ] ] ) ):
+				$value = $user[ $attribute[ 'id' ] ];
+				if( ( $value[ 'type' ] === 'single' ) && ( count( $value ) > 0 ) ):
+					$value = $value[ 0 ];
+				endif;
+			endif;
+			$this->userAttributes[ $attributeName ] = $value;
+		endif;
 		
 		// check if password is valid
 		$ldapBind = @ldap_bind( $ldapConnection, $userDN, $this->password );
@@ -98,8 +108,9 @@ class Ldap extends \yii\base\Component {
 			return false;
 		endif;
 		
-		$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
+		// return success
 		ldap_unbind( $ldapConnection );
+		$this->errorCode = self::ERROR_LDAP_NONE;
 		return true;
 		
 	}
@@ -115,3 +126,4 @@ class Ldap extends \yii\base\Component {
 	}
 	
 }
+
