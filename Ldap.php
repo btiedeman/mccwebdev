@@ -98,7 +98,7 @@ class Ldap extends \yii\base\Component {
 				endif;
 			endif;
 			$this->userAttributes[ $attributeName ] = $value;
-		endif;
+		endforeach;
 		
 		// check if password is valid
 		$ldapBind = @ldap_bind( $ldapConnection, $userDN, $this->password );
