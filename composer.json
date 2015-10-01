@@ -1,7 +1,7 @@
 {
     "name": "mccwebdev/bat008.yii2-ldap-nwu",
     "description": "Yii 2 Ldap Extension for Northwestern University",
-    "type": "library",
+    "type": "yii2-extension",
     "keywords": [""],
     "license": "LGPL-3.0+",
     "authors": [
@@ -15,7 +15,7 @@
     },
     "autoload": {
         "psr-4": {
-            "\\mccwebdev\\ldap\\": ""
+            "mccwebdev\\ldap\\": ""
         }
     }
 }
