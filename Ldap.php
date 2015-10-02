@@ -45,6 +45,19 @@ class Ldap extends \yii\base\Component {
 	
 	public function authenticateUser( ) {
 		
+		if( empty( $this->connectionHostname ) )
+			throw new InvalidConfigException( "'connectionHostname' configuration cannot be empty." );
+		if( empty( $this->connectionPort ) )
+			throw new InvalidConfigException( "'connectionPort' configuration cannot be empty." );
+		if( empty( $this->serviceDistinguishedName ) )
+			throw new InvalidConfigException( "'serviceDistinguishedName' configuration cannot be empty." );
+		if( empty( $this->servicePassword ) )
+			throw new InvalidConfigException( "'servicePassword' configuration cannot be empty." );
+		if( empty( $this->searchBaseDistinguishedName ) )
+			throw new InvalidConfigException( "'searchBaseDistinguishedName' configuration cannot be empty." );
+		if( empty( $this->searchParameters ) )
+			throw new InvalidConfigException( "'searchParameters' configuration cannot be empty." );
+		
 		$ldapConnection = NULL;
 		$ldapBind = NULL;
 		
