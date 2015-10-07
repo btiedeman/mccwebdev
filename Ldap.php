@@ -142,5 +142,33 @@ class Ldap extends \yii\base\Component {
 		return $this->userAttributes;
 	}
 	
+	public function getErrorMessage( ) {
+		
+		switch( $this->errorCode ):
+			
+			case ERROR_LDAP_NONE:
+				return 'No error.';
+				break;
+			case ERROR_LDAP_MULTIPLE_USERS_FOUND:
+				return 'Could not distinguish user.';
+				break;
+			case ERROR_LDAP_USERNAME_INVALID:
+				return 'Invalid username.';
+				break;
+			case ERROR_LDAP_PASSWORD_INVALID:
+				return 'Invalid password.';
+				break;
+			case ERROR_LDAP_UNAVAILABLE:
+				return 'Authentication service currently unavailable.';
+				break;
+			case ERROR_UNKNOWN_IDENTITY:
+			default:
+				return 'Unknown error. Please contact an administrator.';
+				break;
+			
+		endswitch;
+		
+	}
+	
 }
 
