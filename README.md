@@ -25,7 +25,39 @@ to the require section of your `composer.json` file.
 Usage
 -----
 
-Once the extension is installed, simply use it in your code by  :
+Once the extension is installed, configure the component:
 
-```php
-<?= mccwebdev\ldap\AutoloadExample::widget(); ?>```
+```
+'ldap' => [
+	'class' => '\mccwebdev\ldap\Ldap',
+	'connectionHostname' => '========',
+	'connectionPort' => '========',
+	'serviceDistinguishedName' => '========',
+	'servicePassword' => '========',
+	'searchBaseDistinguishedName' => '========',
+	'searchParameters' => [
+		'uid' => 'username',
+	],
+	'requestedAttributes' => [
+		'name' => [
+			'id' => 'displayname',
+			'type' => 'single',
+		],
+		'emailAddress' => [
+			'id' => 'mail',
+			'type' => 'single',
+		],
+		'schoolAffiliations' => [
+			'id' => 'nuschoolaffiliations',
+			'type' => 'multiple',
+		],
+	],
+],
+```
+
+Finally, use the component wherever you need to authenticate an account.
+
+```
+Yii::$app->ldap->setCredentials( $username, $password );
+$isAuthenticated = Yii::$app->ldap->authenticateUser( );
+```
