@@ -30,19 +30,10 @@ class Ldap extends \yii\base\Component {
 	protected $searchBaseDistinguishedName;
 	protected $searchParameters = [ ];
 	
-	protected $username;
-	protected $userDistinguishedName;
-	protected $password;
-	
 	protected $requestedAttributes = [ ];
 	protected $userAttributes = [ ];
 	
 	protected $errorCode = self::ERROR_LDAP_NONE;
-	
-	public function setCredentials( $username, $password = '' ) {
-		$this->username = $username;
-		$this->password = $password;
-	}
 	
 	private function getLdapConnection( ) {
 		
@@ -81,13 +72,13 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
-	private function getLdapSearchResults( &$ldapConnection ) {
+	private function getLdapSearchResults( &$ldapConnection, $parameters ) {
 		
 		if( empty( $this->searchBaseDistinguishedName ) )
 			throw new InvalidConfigException( "'searchBaseDistinguishedName' configuration cannot be empty." );
 		
 		// try to find the requested user and any requested attributes
-		$ldapSearch = ldap_search( $ldapConnection, $this->searchBaseDistinguishedName, $this->buildLdapFilter( ) );
+		$ldapSearch = ldap_search( $ldapConnection, $this->searchBaseDistinguishedName, $this->buildLdapFilter( $parameters ) );
 		$ldapSearchResults = ldap_get_entries( $ldapConnection, $ldapSearch );
 		
 		if( $ldapSearchResults[ 'count' ] > 1 ):
@@ -121,23 +112,23 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
-	private function buildLdapFilter( ) {
+	private function buildLdapFilter( $parameters ) {
 		
 		if( empty( $this->searchParameters ) )
 			throw new InvalidConfigException( "'searchParameters' configuration cannot be empty." );
 		
 		$filters = [ ];
 		foreach( $this->searchParameters as $searchParameter => $searchValue ):
-			$filters[ ] = $searchParameter . '=' . $this->$searchValue;
+			$filters[ ] = $searchParameter . '=' . $parameters[ $searchValue ];
 		endforeach;
 		return implode( ',', $filters );
 		
 	}
 	
-	private function checkPassword( &$ldapConnection, $userDN ) {
+	private function checkPassword( &$ldapConnection, $userDistinguishedName, $password ) {
 		
 		// check if password is valid
-		$ldapBind = @ldap_bind( $ldapConnection, $this->userDistinguishedName, $this->password );
+		$ldapBind = @ldap_bind( $ldapConnection, $userDistinguishedName, $password );
 		if( ! $ldapBind ):
 			ldap_unbind( $ldapConnection );
 			$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
@@ -148,7 +139,7 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
-	public function findUser( ) {
+	public function findUser( $username ) {
 		
 		$ldapConnection = NULL;
 		$ldapBind = NULL;
@@ -166,10 +157,7 @@ class Ldap extends \yii\base\Component {
 		if( ! ( $ldapBind = $this->getLdapBinding( $ldapConnection ) ) ) return false;
 		
 		// try to find the requested user and any requested attributes
-		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection ) ) ) return false;
-		
-		// retrieve distinguished name
-		$this->userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
+		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection, [ 'username' => $username ] ) ) ) return false;
 		
 		// return success
 		ldap_unbind( $ldapConnection );
@@ -178,7 +166,7 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
-	public function authenticateUser( ) {
+	public function authenticateUser( $username, $password ) {
 		
 		$ldapConnection = NULL;
 		$ldapBind = NULL;
@@ -196,13 +184,13 @@ class Ldap extends \yii\base\Component {
 		if( ! ( $ldapBind = $this->getLdapBinding( $ldapConnection ) ) ) return false;
 		
 		// try to find the requested user and any requested attributes
-		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection ) ) ) return false;
+		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection, [ 'username' => $username ] ) ) ) return false;
 		
 		// retrieve distinguished name
-		$this->userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
+		$userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
 		
 		// check if password is valid
-		if( ! ( $this->checkPassword( $ldapConnection ) ) ) return false;
+		if( ! ( $this->checkPassword( $ldapConnection, $userDistinguishedName, $password ) ) ) return false;
 		
 		// return success
 		ldap_unbind( $ldapConnection );
