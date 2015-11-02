@@ -31,6 +31,7 @@ class Ldap extends \yii\base\Component {
 	protected $searchParameters = [ ];
 	
 	protected $username;
+	protected $userDistinguishedName;
 	protected $password;
 	
 	protected $requestedAttributes = [ ];
@@ -38,40 +39,35 @@ class Ldap extends \yii\base\Component {
 	
 	protected $errorCode = self::ERROR_LDAP_NONE;
 	
-	public function setCredentials( $username, $password ) {
+	public function setCredentials( $username, $password = '' ) {
 		$this->username = $username;
 		$this->password = $password;
 	}
 	
-	public function authenticateUser( ) {
+	private function getLdapConnection( ) {
 		
 		if( empty( $this->connectionHostname ) )
 			throw new InvalidConfigException( "'connectionHostname' configuration cannot be empty." );
 		if( empty( $this->connectionPort ) )
 			throw new InvalidConfigException( "'connectionPort' configuration cannot be empty." );
-		if( empty( $this->serviceDistinguishedName ) )
-			throw new InvalidConfigException( "'serviceDistinguishedName' configuration cannot be empty." );
-		if( empty( $this->servicePassword ) )
-			throw new InvalidConfigException( "'servicePassword' configuration cannot be empty." );
-		if( empty( $this->searchBaseDistinguishedName ) )
-			throw new InvalidConfigException( "'searchBaseDistinguishedName' configuration cannot be empty." );
-		if( empty( $this->searchParameters ) )
-			throw new InvalidConfigException( "'searchParameters' configuration cannot be empty." );
-		
-		$ldapConnection = NULL;
-		$ldapBind = NULL;
 		
 		// try to connect to LDAP server
 		$ldapConnection = ldap_connect( $this->connectionHostname, $this->connectionPort );
 		if( ! $ldapConnection ):
 			$this->errorCode = self::ERROR_LDAP_UNAVAILABLE;
-			return false;
+			return NULL;
 		endif;
 		
-		// set LDAP options
-		// TODO: convert to Yii configuration
-		ldap_set_option( $ldapConnection, LDAP_OPT_PROTOCOL_VERSION, 3 );
-		ldap_set_option( $ldapConnection, LDAP_OPT_REFERRALS, 0 );
+		return $ldapConnection;
+		
+	}
+	
+	private function getLdapBinding( &$ldapConnection ) {
+		
+		if( empty( $this->serviceDistinguishedName ) )
+			throw new InvalidConfigException( "'serviceDistinguishedName' configuration cannot be empty." );
+		if( empty( $this->servicePassword ) )
+			throw new InvalidConfigException( "'servicePassword' configuration cannot be empty." );
 		
 		// try to bind to LDAP server with authorized service account
 		$ldapBind = ldap_bind( $ldapConnection, $this->serviceDistinguishedName, $this->servicePassword );
@@ -81,7 +77,16 @@ class Ldap extends \yii\base\Component {
 			return false;
 		endif;
 		
-		// try to find the requested user
+		return $ldapBind;
+		
+	}
+	
+	private function findCurrentUser( &$ldapConnection ) {
+		
+		if( empty( $this->searchBaseDistinguishedName ) )
+			throw new InvalidConfigException( "'searchBaseDistinguishedName' configuration cannot be empty." );
+		
+		// try to find the requested user and any requested attributes
 		$ldapSearch = ldap_search( $ldapConnection, $this->searchBaseDistinguishedName, $this->buildLdapFilter( ) );
 		$ldapSearchResults = ldap_get_entries( $ldapConnection, $ldapSearch );
 		
@@ -97,44 +102,82 @@ class Ldap extends \yii\base\Component {
 			return false;
 		endif;
 		
-		// retrieve distinguished name and any requested attributes
 		$user = $ldapSearchResults[ 0 ];
 		
-		$userDN = ( empty( $requestedUser[ 'dn' ] ) ? '' : $requestedUser[ 'dn' ] );
-		
-		foreach( $this->requestedAttributes as $attributeName => $attribute ):
-			$value = '';
-			if( ! empty( $user[ $attribute[ 'id' ] ] ) ):
-				$value = $user[ $attribute[ 'id' ] ];
-				if( ( $value[ 'type' ] === 'single' ) && ( count( $value ) > 0 ) ):
-					$value = $value[ 0 ];
+		if( ! empty( $this->requestedAttributes ) ):
+			foreach( $this->requestedAttributes as $attributeName => $attribute ):
+				$value = '';
+				if( ! empty( $user[ $attribute[ 'id' ] ] ) ):
+					$value = $user[ $attribute[ 'id' ] ];
+					if( ( $value[ 'type' ] === 'single' ) && ( count( $value ) > 0 ) ):
+						$value = $value[ 0 ];
+					endif;
 				endif;
-			endif;
-			$this->userAttributes[ $attributeName ] = $value;
-		endforeach;
-		
-		// check if password is valid
-		$ldapBind = @ldap_bind( $ldapConnection, $userDN, $this->password );
-		if( ! $ldapBind ):
-			ldap_unbind( $ldapConnection );
-			$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
-			return false;
+				$this->userAttributes[ $attributeName ] = $value;
+			endforeach;
 		endif;
 		
-		// return success
-		ldap_unbind( $ldapConnection );
-		$this->errorCode = self::ERROR_LDAP_NONE;
-		return true;
+		return $user;
 		
 	}
 	
 	private function buildLdapFilter( ) {
+		
+		if( empty( $this->searchParameters ) )
+			throw new InvalidConfigException( "'searchParameters' configuration cannot be empty." );
 		
 		$filters = [ ];
 		foreach( $this->searchParameters as $searchParameter => $searchValue ):
 			$filters[ ] = $searchParameter . '=' . $this->$searchValue;
 		endforeach;
 		return implode( ',', $filters );
+		
+	}
+	
+	private function checkPassword( &$ldapConnection, $userDN ) {
+		
+		// check if password is valid
+		$ldapBind = @ldap_bind( $ldapConnection, $this->userDistinguishedName, $this->password );
+		if( ! $ldapBind ):
+			ldap_unbind( $ldapConnection );
+			$this->errorCode = self::ERROR_LDAP_PASSWORD_INVALID;
+			return false;
+		endif;
+		
+		return true;
+		
+	}
+	
+	public function authenticateUser( ) {
+		
+		$ldapConnection = NULL;
+		$ldapBind = NULL;
+		$user = NULL;
+		
+		// try to connect to LDAP server
+		if( ! ( $ldapConnection = $this->getLdapConnection( ) ) ) return false;
+		
+		// set LDAP options
+		// TODO: convert to Yii configuration
+		ldap_set_option( $ldapConnection, LDAP_OPT_PROTOCOL_VERSION, 3 );
+		ldap_set_option( $ldapConnection, LDAP_OPT_REFERRALS, 0 );
+		
+		// try to bind to LDAP server with authorized service account
+		if( ! ( $ldapBind = $this->getLdapBinding( $ldapConnection ) ) ) return false;
+		
+		// try to find the requested user and any requested attributes
+		if( ! ( $user = $this->findCurrentUser( $ldapConnection ) ) ) return false;
+		
+		// retrieve distinguished name
+		$this->userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
+		
+		// check if password is valid
+		if( ! ( $this->checkPassword( $ldapConnection ) ) ) return false;
+		
+		// return success
+		ldap_unbind( $ldapConnection );
+		$this->errorCode = self::ERROR_LDAP_NONE;
+		return true;
 		
 	}
 	
