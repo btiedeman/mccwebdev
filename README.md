@@ -55,9 +55,9 @@ Once the extension is installed, configure the component:
 ],
 ```
 
-Finally, use the component wherever you need to authenticate an account.
+Finally, use the component wherever you need to find or authenticate an account.
 
 ```
-Yii::$app->ldap->setCredentials( $username, $password );
+$isUser = Yii::$app->ldap->findUser( );
 $isAuthenticated = Yii::$app->ldap->authenticateUser( );
 ```
