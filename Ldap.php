@@ -148,7 +148,7 @@ class Ldap extends \yii\base\Component {
 				$value = '';
 				if( ! empty( $user[ $attribute[ 'id' ] ] ) ):
 					$value = $user[ $attribute[ 'id' ] ];
-					if( ( $value[ 'type' ] === 'single' ) && ( count( $value ) > 0 ) ):
+					if( ( $attribute[ 'type' ] === 'single' ) && ( count( $value ) > 0 ) ):
 						$value = $value[ 0 ];
 					endif;
 				endif;
