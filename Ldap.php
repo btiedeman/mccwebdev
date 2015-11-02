@@ -22,15 +22,15 @@ class Ldap extends \yii\base\Component {
 	const ERROR_LDAP_UNAVAILABLE = 4;
 	const ERROR_UNKNOWN_IDENTITY = 100;
 	
-	protected $connectionHostname;
-	protected $connectionPort;
-	protected $serviceDistinguishedName;
-	protected $servicePassword;
+	public $connectionHostname;
+	public $connectionPort;
+	public $serviceDistinguishedName;
+	public $servicePassword;
 	
-	protected $searchBaseDistinguishedName;
-	protected $searchParameters = [ ];
+	public $searchBaseDistinguishedName;
+	public $searchParameters = [ ];
 	
-	protected $requestedAttributes = [ ];
+	public $requestedAttributes = [ ];
 	protected $userAttributes = [ ];
 	
 	protected $errorCode = self::ERROR_LDAP_NONE;
@@ -95,6 +95,7 @@ class Ldap extends \yii\base\Component {
 		
 		$user = $ldapSearchResults[ 0 ];
 		
+		$this->userAttributes = [ ];
 		if( ! empty( $this->requestedAttributes ) ):
 			foreach( $this->requestedAttributes as $attributeName => $attribute ):
 				$value = '';
