@@ -22,15 +22,62 @@ class Ldap extends \yii\base\Component {
 	const ERROR_LDAP_UNAVAILABLE = 4;
 	const ERROR_UNKNOWN_IDENTITY = 100;
 	
-	public $connectionHostname;
-	public $connectionPort;
-	public $serviceDistinguishedName;
-	public $servicePassword;
+	protected $connectionHostname;
+	protected function getConnectionHostname( ) {
+		return $this->connectionHostname;
+	}
+	protected function setConnectionHostname( $connectionHostname ) {
+		$this->connectionHostname = $connectionHostname;
+	}
 	
-	public $searchBaseDistinguishedName;
-	public $searchParameters = [ ];
+	protected $connectionPort;
+	protected function getConnectionPort( ) {
+		return $this->connectionPort;
+	}
+	protected function setConnectionPort( $connectionPort ) {
+		$this->connectionPort = $connectionPort;
+	}
 	
-	public $requestedAttributes = [ ];
+	protected $serviceDistinguishedName;
+	protected function getServiceDistinguishedName( ) {
+		return $this->serviceDistinguishedName;
+	}
+	protected function setServiceDistinguishedName( $serviceDistinguishedName ) {
+		$this->serviceDistinguishedName = $serviceDistinguishedName;
+	}
+	
+	protected $servicePassword;
+	protected function getServicePassword( ) {
+		return $this->servicePassword;
+	}
+	protected function setServicePassword( $servicePassword ) {
+		$this->servicePassword = $servicePassword;
+	}
+	
+	protected $searchBaseDistinguishedName;
+	protected function getSearchBaseDistinguishedName( ) {
+		return $this->searchBaseDistinguishedName;
+	}
+	protected function setSearchBaseDistinguishedName( $searchBaseDistinguishedName ) {
+		$this->searchBaseDistinguishedName = $searchBaseDistinguishedName;
+	}
+	
+	protected $searchParameters = [ ];
+	protected function getSearchParameters( ) {
+		return $this->searchParameters;
+	}
+	protected function setSearchParameters( $searchParameters ) {
+		$this->searchParameters = $searchParameters;
+	}
+	
+	protected $requestedAttributes = [ ];
+	protected function getRequestedAttributes( ) {
+		return $this->requestedAttributes;
+	}
+	protected function setRequestedAttributes( $requestedAttributes ) {
+		$this->requestedAttributes = $requestedAttributes;
+	}
+	
 	protected $userAttributes = [ ];
 	
 	protected $errorCode = self::ERROR_LDAP_NONE;
