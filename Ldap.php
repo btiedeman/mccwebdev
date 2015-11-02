@@ -81,7 +81,7 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
-	private function findCurrentUser( &$ldapConnection ) {
+	private function getLdapSearchResults( &$ldapConnection ) {
 		
 		if( empty( $this->searchBaseDistinguishedName ) )
 			throw new InvalidConfigException( "'searchBaseDistinguishedName' configuration cannot be empty." );
@@ -148,6 +148,36 @@ class Ldap extends \yii\base\Component {
 		
 	}
 	
+	public function findUser( ) {
+		
+		$ldapConnection = NULL;
+		$ldapBind = NULL;
+		$user = NULL;
+		
+		// try to connect to LDAP server
+		if( ! ( $ldapConnection = $this->getLdapConnection( ) ) ) return false;
+		
+		// set LDAP options
+		// TODO: convert to Yii configuration
+		ldap_set_option( $ldapConnection, LDAP_OPT_PROTOCOL_VERSION, 3 );
+		ldap_set_option( $ldapConnection, LDAP_OPT_REFERRALS, 0 );
+		
+		// try to bind to LDAP server with authorized service account
+		if( ! ( $ldapBind = $this->getLdapBinding( $ldapConnection ) ) ) return false;
+		
+		// try to find the requested user and any requested attributes
+		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection ) ) ) return false;
+		
+		// retrieve distinguished name
+		$this->userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
+		
+		// return success
+		ldap_unbind( $ldapConnection );
+		$this->errorCode = self::ERROR_LDAP_NONE;
+		return true;
+		
+	}
+	
 	public function authenticateUser( ) {
 		
 		$ldapConnection = NULL;
@@ -166,7 +196,7 @@ class Ldap extends \yii\base\Component {
 		if( ! ( $ldapBind = $this->getLdapBinding( $ldapConnection ) ) ) return false;
 		
 		// try to find the requested user and any requested attributes
-		if( ! ( $user = $this->findCurrentUser( $ldapConnection ) ) ) return false;
+		if( ! ( $user = $this->getLdapSearchResults( $ldapConnection ) ) ) return false;
 		
 		// retrieve distinguished name
 		$this->userDistinguishedName = ( empty( $user[ 'dn' ] ) ? '' : $user[ 'dn' ] );
