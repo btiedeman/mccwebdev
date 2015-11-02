@@ -61,3 +61,9 @@ Finally, use the component wherever you need to find or authenticate an account.
 $isUser = Yii::$app->ldap->findUser( );
 $isAuthenticated = Yii::$app->ldap->authenticateUser( );
 ```
+
+You can get any additional attributes that were added to the configuration as an array using the following method after finding or authenticating an account.
+
+```
+$userAttributes = Yii::$app->ldap->getUserAttributes( );
+```
