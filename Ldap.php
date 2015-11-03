@@ -256,7 +256,7 @@ class Ldap extends \yii\base\Component {
 		switch( $this->errorCode ):
 			
 			case self::ERROR_LDAP_NONE:
-				return 'No error.';
+				return;
 				break;
 			case self::ERROR_LDAP_MULTIPLE_USERS_FOUND:
 				return 'Could not distinguish user.';
